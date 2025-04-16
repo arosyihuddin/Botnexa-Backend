@@ -1,0 +1,784 @@
+// Translations
+const translations = {
+    en: {
+        // Bot operations
+        createBot: 'Create New Bot',
+        editBot: 'Edit Bot',
+        save: 'Save',
+        saveChanges: 'Save Changes',
+        settings: 'Bot Settings',
+        viewLogs: 'View Activity Logs',
+        cancel: 'Cancel',
+        settingsSaved: 'Settings saved successfully',
+        settingsError: 'Error saving settings',
+        
+        // Bot status
+        connected: 'Connected',
+        disconnected: 'Disconnected',
+        connect: 'Connect',
+        disconnect: 'Disconnect',
+
+        // Settings
+        botSettings: 'Bot Settings',
+        generalSettings: 'General Settings',
+        notificationSettings: 'Notification Settings',
+        autoReply: 'Auto Reply',
+        enableAutoReply: 'Enable Auto Reply',
+        replyDelay: 'Reply Delay (seconds)',
+        customReply: 'Custom Reply Message',
+        enableNotifications: 'Enable Notifications',
+        notifyOnMessage: 'Notify on New Message',
+        notifyOnConnect: 'Notify on Connect/Disconnect',
+        
+        // Empty state
+        noBots: 'No Bots Found',
+        createFirstBot: 'Create your first bot to get started',
+        
+        // Actions
+        confirmDelete: 'Are you sure you want to delete this bot?',
+        deleteSuccess: 'Bot deleted successfully',
+        deleteError: 'Error deleting bot',
+        botCreated: 'Bot created successfully',
+        botUpdated: 'Bot updated successfully',
+        botError: 'Error occurred',
+        
+        // Loading states
+        generating: 'Generating QR Code...',
+        pleaseWait: 'Please wait...',
+        connecting: 'Connecting...',
+        tryAgain: 'Try Again',
+        
+        // QR Code
+        scanQr: 'Scan QR Code',
+        enterPairingCode: 'Enter Pairing Code',
+        chooseLoginMethod: 'Choose Login Method',
+        qrCode: 'QR Code',
+        pairingCode: 'Pairing Code'
+    },
+    id: {
+        // Bot operations
+        createBot: 'Buat Bot Baru',
+        editBot: 'Edit Bot',
+        save: 'Simpan',
+        saveChanges: 'Simpan Perubahan',
+        settings: 'Pengaturan Bot',
+        viewLogs: 'Lihat Log Aktivitas',
+        cancel: 'Batal',
+        settingsSaved: 'Pengaturan berhasil disimpan',
+        settingsError: 'Gagal menyimpan pengaturan',
+        
+        // Bot status
+        connected: 'Terhubung',
+        disconnected: 'Terputus',
+        connect: 'Hubungkan',
+        disconnect: 'Putuskan',
+
+        // Settings
+        botSettings: 'Pengaturan Bot',
+        generalSettings: 'Pengaturan Umum',
+        notificationSettings: 'Pengaturan Notifikasi',
+        autoReply: 'Balas Otomatis',
+        enableAutoReply: 'Aktifkan Balas Otomatis',
+        replyDelay: 'Jeda Balasan (detik)',
+        customReply: 'Pesan Balasan Kustom',
+        enableNotifications: 'Aktifkan Notifikasi',
+        notifyOnMessage: 'Notifikasi Pesan Baru',
+        notifyOnConnect: 'Notifikasi Koneksi/Putus',
+        
+        // Empty state
+        noBots: 'Tidak Ada Bot',
+        createFirstBot: 'Buat bot pertama Anda untuk memulai',
+        
+        // Actions
+        confirmDelete: 'Apakah Anda yakin ingin menghapus bot ini?',
+        deleteSuccess: 'Bot berhasil dihapus',
+        deleteError: 'Gagal menghapus bot',
+        botCreated: 'Bot berhasil dibuat',
+        botUpdated: 'Bot berhasil diperbarui',
+        botError: 'Terjadi kesalahan',
+        
+        // Loading states
+        generating: 'Membuat Kode QR...',
+        pleaseWait: 'Mohon tunggu...',
+        connecting: 'Menghubungkan...',
+        tryAgain: 'Coba Lagi',
+        
+        // QR Code
+        scanQr: 'Pindai Kode QR',
+        enterPairingCode: 'Masukkan Kode Pemasangan',
+        chooseLoginMethod: 'Pilih Metode Login',
+        qrCode: 'Kode QR',
+        pairingCode: 'Kode Pemasangan'
+    }
+};
+
+// Translation helper function
+function t(key) {
+    const lang = localStorage.getItem('preferred_language') || 'en';
+    return translations[lang]?.[key] || translations.en[key] || key;
+}
+
+// Global state
+let bots = [];
+let currentBotId = null;
+
+// Helper function to show loading state
+function showLoading(message) {
+    return `
+        <div class="flex flex-col items-center justify-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <p class="mt-4 text-gray-500">${message}</p>
+        </div>
+    `;
+}
+
+// Helper function to show error state
+function showError(botId, message) {
+    return `
+        <div class="text-center">
+            <p class="text-red-500 mb-2">${message}</p>
+            <button onclick="requestQRCode(${botId})" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+                ${t('tryAgain')}
+            </button>
+        </div>
+    `;
+}
+
+// Helper function to show notifications
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg text-white ${
+        type === 'success' ? 'bg-green-500' : 
+        type === 'error' ? 'bg-red-500' : 
+        'bg-blue-500'
+    } transition-opacity duration-500`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        setTimeout(() => notification.remove(), 500);
+    }, 3000);
+}
+
+// Function to load bots
+function loadBots() {
+    const botListElement = document.getElementById('botList');
+    if (!botListElement) return;
+
+    botListElement.innerHTML = '';
+
+    if (!bots.length) {
+        // Show empty state
+        const emptyState = document.createElement('div');
+        emptyState.className = 'col-span-full text-center py-12';
+        emptyState.innerHTML = `
+            <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-robot text-primary text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold mb-2">${t('noBots')}</h3>
+            <p class="text-gray-500 dark:text-gray-400">${t('createFirstBot')}</p>
+        `;
+        botListElement.appendChild(emptyState);
+        return;
+    }
+
+    bots.forEach(bot => {
+        const card = document.createElement('div');
+        card.className = 'bg-white dark:bg-dark-200 rounded-lg shadow-sm p-6 space-y-4';
+        
+        // Create card content with proper translations
+        const statusClass = bot.isConnected ? 'bg-green-500' : 'bg-gray-500';
+        const buttonClass = bot.isConnected ? 
+            'bg-red-500 hover:bg-red-600' : 
+            'bg-primary hover:bg-primary/90';
+        const statusText = bot.isConnected ? t('connected') : t('disconnected');
+        const actionText = bot.isConnected ? t('disconnect') : t('connect');
+        
+        card.innerHTML = `
+            <div class="flex flex-col h-full">
+                <div class="flex items-center space-x-3 mb-4">
+                    <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-robot text-primary text-xl"></i>
+                    </div>
+                    <div class="flex-grow">
+                        <h3 class="font-semibold">${bot.name}</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">${bot.number}</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                            <button onclick="editBot(${bot.id})" class="p-2 text-gray-500 hover:text-primary" title="${t('editBot')}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <a href="/activity.html?bot=${bot.id}" class="p-2 text-gray-500 hover:text-primary" title="${t('viewLogs')}">
+                                <i class="fas fa-history"></i>
+                            </a>
+                            <button onclick="openBotSettings(${bot.id})" class="p-2 text-gray-500 hover:text-primary" title="${t('settings')}">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                            <button onclick="deleteBot(${bot.id})" class="p-2 text-gray-500 hover:text-red-500" title="${t('confirmDelete')}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-100 dark:border-dark-100">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2 h-2 rounded-full ${statusClass}"></span>
+                        <span class="text-sm">${statusText}</span>
+                    </div>
+                    <button onclick="toggleBot(${bot.id}, ${!bot.isConnected})" 
+                            class="px-4 py-2 rounded-lg ${buttonClass} text-white">
+                        ${actionText}
+                    </button>
+                </div>
+            </div>
+        `;
+        botListElement.appendChild(card);
+    });
+}
+
+// Function to update UI text based on current language
+window.updateUIText = function() {
+    // Reload bots to update their text
+    if (Array.isArray(bots)) {
+        loadBots();
+    }
+    
+    // Update modal texts
+    const modalTitle = document.querySelector('#botModal h2');
+    if (modalTitle) {
+        modalTitle.textContent = currentBotId ? t('editBot') : t('createBot');
+    }
+    
+    if (saveBotBtn) {
+        saveBotBtn.textContent = currentBotId ? t('saveChanges') : t('save');
+    }
+
+    // Update login modal texts
+    const loginTitle = document.querySelector('#loginMethodModal h3');
+    if (loginTitle) {
+        loginTitle.textContent = t('chooseLoginMethod');
+    }
+
+    const qrSpan = qrLoginBtn?.querySelector('span');
+    if (qrSpan) {
+        qrSpan.textContent = t('qrCode');
+    }
+
+    const pairSpan = pairingLoginBtn?.querySelector('span');
+    if (pairSpan) {
+        pairSpan.textContent = t('pairingCode');
+    }
+    
+    // Update loading messages
+    if (qrCode?.innerHTML.includes('animate-spin')) {
+        qrCode.innerHTML = showLoading(t('generating'));
+    }
+    
+    if (pairingCode?.textContent === 'Please wait...' || pairingCode?.textContent === 'Mohon tunggu...') {
+        pairingCode.textContent = t('pleaseWait');
+    }
+};
+
+// Language change handlers
+document.addEventListener('languageChanged', window.updateUIText);
+
+// Main initialization
+document.addEventListener('DOMContentLoaded', async () => {
+    // Check authentication first
+    const isAuthorized = await authGuard.guardRoute();
+    if (!isAuthorized) return;
+
+    // Add authorization header to all fetch requests
+    const token = localStorage.getItem('authToken');
+    const fetchWithAuth = (url, options = {}) => {
+        return fetch(url, {
+            ...options,
+            headers: {
+                ...options.headers,
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+    };
+
+    // Socket.io setup with authentication
+    const socket = io({
+        auth: {
+            token: token
+        }
+    });
+
+    // Handle socket authentication errors
+    socket.on('connect_error', (error) => {
+        if (error.message === 'Authentication failed') {
+            authGuard.handleInvalidToken();
+        }
+    });
+
+    // Initialize DOM Elements
+    const botList = document.getElementById('botList');
+    const createBotBtn = document.getElementById('createBotBtn');
+    const botModal = document.getElementById('botModal');
+    const loginMethodModal = document.getElementById('loginMethodModal');
+    const botForm = document.getElementById('botForm');
+    const botName = document.getElementById('botName');
+    const botNumber = document.getElementById('botNumber');
+    const closeBotModalBtn = document.getElementById('closeBotModalBtn');
+    const closeLoginModalBtn = document.getElementById('closeLoginModalBtn');
+    const saveBotBtn = document.getElementById('saveBotBtn');
+    const qrLoginBtn = document.getElementById('qrLoginBtn');
+    const pairingLoginBtn = document.getElementById('pairingLoginBtn');
+    const qrCodeContainer = document.getElementById('qrCodeContainer');
+    const pairingCodeContainer = document.getElementById('pairingCodeContainer');
+    const qrCode = document.getElementById('qrCode');
+    const pairingCode = document.getElementById('pairingCode');
+
+    // Event Listeners
+    createBotBtn.addEventListener('click', () => {
+        botModal.classList.remove('hidden');
+    });
+
+    // Modal close event listeners
+    closeBotModalBtn.addEventListener('click', resetBotModal);
+    closeLoginModalBtn.addEventListener('click', resetLoginModal);
+
+    qrLoginBtn.addEventListener('click', () => {
+        qrCodeContainer.classList.remove('hidden');
+        pairingCodeContainer.classList.add('hidden');
+        requestQRCode(currentBotId);
+    });
+
+    pairingLoginBtn.addEventListener('click', () => {
+        qrCodeContainer.classList.add('hidden');
+        pairingCodeContainer.classList.remove('hidden');
+        requestPairingCode(currentBotId);
+    });
+
+    saveBotBtn.addEventListener('click', async () => {
+        const formData = {
+            name: botName.value.trim(),
+            number: botNumber.value.trim()
+        };
+        
+        try {
+            const isEditing = Boolean(currentBotId);
+            const url = isEditing ? `/api/v1/bots/${currentBotId}` : '/api/v1/bots';
+            const method = isEditing ? 'PUT' : 'POST';
+            
+            const response = await fetchWithAuth(url, {
+                method: method,
+                body: JSON.stringify(formData)
+            });
+            
+            const data = await response.json();
+            if (data.status === 'success') {
+                showNotification(
+                    isEditing ? t('botUpdated') : t('botCreated'),
+                    'success'
+                );
+                
+                if (!isEditing) {
+                    currentBotId = data.data.id;
+                    loginMethodModal.classList.remove('hidden');
+                }
+                
+                botModal.classList.add('hidden');
+                botForm.reset();
+                
+                if (isEditing) {
+                    currentBotId = null;
+                }
+                
+                await fetchBots();
+            } else {
+                showNotification(data.message || t('botError'), 'error');
+            }
+        } catch (error) {
+            console.error('Error saving bot:', error);
+            showNotification(t('botError'), 'error');
+        }
+    });
+
+    // Socket event handlers
+    socket.on('qr', (data) => {
+        if (data.botId === currentBotId) {
+            try {
+                // Create container for QR code
+                const container = document.createElement('div');
+                container.className = 'relative flex flex-col items-center w-full max-w-[280px] mx-auto';
+                
+                // Create QR wrapper
+                const qrWrapper = document.createElement('div');
+                qrWrapper.className = 'relative bg-white rounded-lg shadow-sm overflow-hidden w-full aspect-square';
+                
+                // Create QR display container
+                const qrDisplay = document.createElement('div');
+                qrDisplay.className = 'absolute inset-0 flex items-center justify-center bg-white';
+                
+                // Create QR code display with proper scaling
+                const qrPre = document.createElement('pre');
+                qrPre.className = 'font-mono text-center whitespace-pre select-none p-4';
+                qrPre.style.fontSize = '12px';
+                qrPre.style.lineHeight = '12px';
+                qrPre.style.letterSpacing = '0';
+                qrPre.style.transform = 'scale(0.45)';
+                qrPre.style.transformOrigin = 'center';
+                qrPre.style.margin = '-25%';
+                
+                // Process QR code data
+                const qrText = data.qr
+                    .split('\n')
+                    .slice(1)
+                    .map(line => 
+                        Array.from(line)
+                            .map(char => char === ' ' ? '  ' : '██')
+                            .join('')
+                    )
+                    .join('\n');
+                
+                qrPre.textContent = qrText;
+                qrDisplay.appendChild(qrPre);
+                qrWrapper.appendChild(qrDisplay);
+                container.appendChild(qrWrapper);
+                
+                // Update UI
+                qrCode.innerHTML = '';
+                qrCode.appendChild(container);
+                qrCodeContainer.classList.remove('hidden');
+                pairingCodeContainer.classList.add('hidden');
+
+                console.log('QR code generated for bot:', currentBotId);
+            } catch (error) {
+                console.error('Error displaying QR code:', error);
+                qrCode.innerHTML = showError(currentBotId, t('generating'));
+            }
+        }
+    });
+
+    socket.on('pairingCode', (data) => {
+        if (data.botId === currentBotId && data.code) {
+            pairingCode.textContent = data.code;
+            qrCodeContainer.classList.add('hidden');
+            pairingCodeContainer.classList.remove('hidden');
+        }
+    });
+
+    socket.on('connection_update', async (data) => {
+        if (data.botId === currentBotId) {
+            if (data.status === 'connected') {
+                loginMethodModal.classList.add('hidden');
+                await fetchBots();
+                showNotification(t('botCreated'), 'success');
+            } else if (data.status === 'disconnected') {
+                await fetchBots();
+                showNotification(t('disconnected'), 'info');
+            } else if (data.status === 'connecting') {
+                showNotification(t('connecting'), 'info');
+            }
+        }
+    });
+
+    socket.on('error', (data) => {
+        if (data.botId === currentBotId) {
+            showNotification(data.message || t('botError'), 'error');
+        }
+    });
+
+    // Function to reset bot modal state
+    function resetBotModal() {
+        botModal.classList.add('hidden');
+        botForm.reset();
+        currentBotId = null;
+        
+        // Reset modal title and button text
+        const modalTitle = document.querySelector('#botModal h2');
+        if (modalTitle) modalTitle.textContent = t('createBot');
+        if (saveBotBtn) saveBotBtn.textContent = t('save');
+    }
+
+    // Function to reset login modal state
+    async function resetLoginModal() {
+        loginMethodModal.classList.add('hidden');
+        qrCodeContainer.classList.add('hidden');
+        pairingCodeContainer.classList.add('hidden');
+        qrCode.innerHTML = '';
+        pairingCode.textContent = '';
+        
+        // Disconnect the bot when modal is closed
+        if (currentBotId) {
+            try {
+                const response = await fetchWithAuth(`/api/v1/bots/${currentBotId}/disconnect`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    await fetchBots();
+                    showNotification(t('disconnected'), 'info');
+                }
+            } catch (error) {
+                console.error('Error disconnecting bot:', error);
+                showNotification(t('botError'), 'error');
+            }
+        }
+    }
+
+    // Make functions globally accessible
+    window.toggleBot = async function(id, shouldConnect) {
+        try {
+            if (shouldConnect) {
+                currentBotId = id;
+                qrCode.innerHTML = '';
+                pairingCode.textContent = '';
+                qrCodeContainer.classList.add('hidden');
+                pairingCodeContainer.classList.add('hidden');
+                loginMethodModal.classList.remove('hidden');
+            } else {
+                const response = await fetchWithAuth(`/api/v1/bots/${id}/disconnect`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showNotification(t('disconnected'), 'info');
+                    await fetchBots();
+                } else {
+                    showNotification(t('botError'), 'error');
+                }
+            }
+        } catch (error) {
+            console.error('Error toggling bot:', error);
+            showNotification(t('botError'), 'error');
+        }
+    };
+
+    window.editBot = async function(id) {
+        try {
+            const response = await fetchWithAuth(`/api/v1/bots/${id}`);
+            const data = await response.json();
+            if (data.status === 'success') {
+                const bot = data.data;
+                currentBotId = bot.id;
+                botName.value = bot.name;
+                botNumber.value = bot.number;
+                
+                const modalTitle = document.querySelector('#botModal h2');
+                if (modalTitle) modalTitle.textContent = t('editBot');
+                if (saveBotBtn) saveBotBtn.textContent = t('saveChanges');
+                
+                botModal.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('Error fetching bot:', error);
+            showNotification(t('botError'), 'error');
+        }
+    };
+
+    window.deleteBot = async function(id) {
+        if (!confirm(t('confirmDelete'))) return;
+        
+        try {
+            const response = await fetchWithAuth(`/api/v1/bots/${id}`, {
+                method: 'DELETE'
+            });
+            
+            const data = await response.json();
+            if (data.status === 'success') {
+                showNotification(t('deleteSuccess'), 'success');
+                await fetchBots();
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            console.error('Error deleting bot:', error);
+            showNotification(t('deleteError'), 'error');
+        }
+    };
+
+    window.requestQRCode = async function(botId) {
+        try {
+            qrCode.innerHTML = showLoading(t('generating'));
+
+            const response = await fetchWithAuth(`/api/v1/bots/${botId}/qr`);
+            const data = await response.json();
+            if (data.status === 'success') {
+                showNotification(data.message, 'info');
+            } else {
+                throw new Error(data.message || 'Failed to generate QR code');
+            }
+        } catch (error) {
+            console.error('Error requesting QR code:', error);
+            qrCode.innerHTML = showError(botId, t('generating'));
+        }
+    };
+
+    window.requestPairingCode = async function(botId) {
+        try {
+            pairingCode.textContent = t('pleaseWait');
+            const response = await fetchWithAuth(`/api/v1/bots/${botId}/pair`);
+            const data = await response.json();
+            if (data.status === 'success') {
+                showNotification(data.message, 'info');
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            console.error('Error requesting pairing code:', error);
+            pairingCode.textContent = t('botError');
+            showNotification(t('botError'), 'error');
+        }
+    };
+
+    // Function to fetch bots
+    async function fetchBots() {
+        try {
+            const response = await fetchWithAuth('/api/v1/bots');
+            const data = await response.json();
+            if (data.status === 'success') {
+                bots = data.data;
+                loadBots();
+            } else {
+                console.error('Failed to fetch bots:', data.message);
+                showNotification(t('botError'), 'error');
+            }
+        } catch (error) {
+            console.error('Error fetching bots:', error);
+            showNotification(t('botError'), 'error');
+        }
+    }
+
+    // Settings modal HTML
+    const settingsModal = document.createElement('div');
+    settingsModal.id = 'settingsModal';
+    settingsModal.className = 'hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center';
+    settingsModal.innerHTML = `
+        <div class="bg-white dark:bg-dark-200 rounded-lg w-full max-w-lg mx-4">
+            <div class="p-6">
+                <h3 class="text-xl font-semibold mb-4">${t('botSettings')}</h3>
+                <form id="settingsForm" class="space-y-6">
+                    <!-- General Settings -->
+                    <div>
+                        <h4 class="font-medium mb-3">${t('generalSettings')}</h4>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="flex items-center space-x-2">
+                                    <input type="checkbox" id="enableAutoReply" class="rounded border-gray-300 text-primary focus:ring-primary">
+                                    <span>${t('enableAutoReply')}</span>
+                                </label>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">${t('replyDelay')}</label>
+                                <input type="number" id="replyDelay" min="0" class="w-full px-3 py-2 border border-gray-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary dark:bg-dark-300">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">${t('customReply')}</label>
+                                <textarea id="customReply" rows="3" class="w-full px-3 py-2 border border-gray-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary dark:bg-dark-300"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notification Settings -->
+                    <div>
+                        <h4 class="font-medium mb-3">${t('notificationSettings')}</h4>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="flex items-center space-x-2">
+                                    <input type="checkbox" id="enableNotifications" class="rounded border-gray-300 text-primary focus:ring-primary">
+                                    <span>${t('enableNotifications')}</span>
+                                </label>
+                            </div>
+                            <div>
+                                <label class="flex items-center space-x-2">
+                                    <input type="checkbox" id="notifyOnMessage" class="rounded border-gray-300 text-primary focus:ring-primary">
+                                    <span>${t('notifyOnMessage')}</span>
+                                </label>
+                            </div>
+                            <div>
+                                <label class="flex items-center space-x-2">
+                                    <input type="checkbox" id="notifyOnConnect" class="rounded border-gray-300 text-primary focus:ring-primary">
+                                    <span>${t('notifyOnConnect')}</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 dark:bg-dark-100 rounded-b-lg flex justify-end space-x-3">
+                <button id="closeSettingsBtn" class="px-4 py-2 text-gray-500 hover:text-gray-700">${t('cancel')}</button>
+                <button id="saveSettingsBtn" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">${t('save')}</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(settingsModal);
+
+    // Settings functionality
+    window.openBotSettings = async function(botId) {
+        try {
+            const response = await fetchWithAuth(`/api/v1/bots/${botId}/settings`);
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                const settings = data.data;
+                
+                // Populate form with current settings
+                document.getElementById('enableAutoReply').checked = settings.enableAutoReply;
+                document.getElementById('replyDelay').value = settings.replyDelay;
+                document.getElementById('customReply').value = settings.customReply;
+                document.getElementById('enableNotifications').checked = settings.enableNotifications;
+                document.getElementById('notifyOnMessage').checked = settings.notifyOnMessage;
+                document.getElementById('notifyOnConnect').checked = settings.notifyOnConnect;
+                
+                // Show modal
+                settingsModal.classList.remove('hidden');
+                
+                // Setup save handler
+                const saveHandler = async () => {
+                    try {
+                        const updatedSettings = {
+                            enableAutoReply: document.getElementById('enableAutoReply').checked,
+                            replyDelay: parseInt(document.getElementById('replyDelay').value),
+                            customReply: document.getElementById('customReply').value,
+                            enableNotifications: document.getElementById('enableNotifications').checked,
+                            notifyOnMessage: document.getElementById('notifyOnMessage').checked,
+                            notifyOnConnect: document.getElementById('notifyOnConnect').checked
+                        };
+                        
+                        const response = await fetchWithAuth(`/api/v1/bots/${botId}/settings`, {
+                            method: 'PUT',
+                            body: JSON.stringify(updatedSettings)
+                        });
+                        
+                        const data = await response.json();
+                        if (data.status === 'success') {
+                            showNotification(t('settingsSaved'), 'success');
+                            settingsModal.classList.add('hidden');
+                        } else {
+                            throw new Error(data.message);
+                        }
+                    } catch (error) {
+                        console.error('Error saving settings:', error);
+                        showNotification(t('settingsError'), 'error');
+                    }
+                };
+                
+                // Setup event listeners
+                const saveBtn = document.getElementById('saveSettingsBtn');
+                const closeBtn = document.getElementById('closeSettingsBtn');
+                
+                saveBtn.onclick = saveHandler;
+                closeBtn.onclick = () => settingsModal.classList.add('hidden');
+                
+                // Close on outside click
+                settingsModal.onclick = (e) => {
+                    if (e.target === settingsModal) {
+                        settingsModal.classList.add('hidden');
+                    }
+                };
+            }
+        } catch (error) {
+            console.error('Error fetching bot settings:', error);
+            showNotification(t('settingsError'), 'error');
+        }
+    };
+
+    // Initialize
+    fetchBots();
+});

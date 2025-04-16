@@ -1,8 +1,26 @@
-import { Entity, PrimaryGeneratedColumn, Column, BaseEntity, Index, ManyToOne, Join, BeforeInsert, BeforeUpdate } from "typeorm";
-import { Users } from "./Users";
+import { Entity, PrimaryGeneratedColumn, Column, BaseEntity, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from "typeorm";
+import { ActivityLogs, LogAction, LogStatus } from "./ActivityLogs";
+import { Profiles } from "./Profiles";
+
+export interface BotSettings {
+    enableAutoReply: boolean;
+    replyDelay: number;
+    customReply: string;
+    enableNotifications: boolean;
+    notifyOnMessage: boolean;
+    notifyOnConnect: boolean;
+}
+
+const defaultSettings: BotSettings = {
+    enableAutoReply: false,
+    replyDelay: 0,
+    customReply: "",
+    enableNotifications: true,
+    notifyOnMessage: true,
+    notifyOnConnect: true
+};
 
 @Entity()
-@Index("idx_user_id", ["user"])
 export class Bots extends BaseEntity {
     @PrimaryGeneratedColumn()
     id!: number;
@@ -10,34 +28,106 @@ export class Bots extends BaseEntity {
     @Column()
     name!: string;
 
-    @Column({ nullable: true })
-    description?: string;
-
     @Column()
     number!: string;
 
-    @Column({ nullable: true, default: false })
+    @Column({ type: "boolean", default: false })
     isConnected!: boolean;
 
-    @Column("jsonb", { nullable: true })
-    auth!: object;
+    @Column({
+        type: "json",
+        nullable: true,
+        default: defaultSettings
+    })
+    settings!: BotSettings;
 
-    @Column({ type: "timestamp" })
+    @Column({ nullable: true })
+    userId?: string;
+
+    @ManyToOne(() => Profiles, { onDelete: 'CASCADE', nullable: true })
+    @JoinColumn({ name: "userId" })
+    user?: Profiles;
+
+    @CreateDateColumn({ type: "timestamp" })
     created_at!: Date;
 
-    @Column({ type: "timestamp", nullable: true })
+    @UpdateDateColumn({ type: "timestamp", nullable: true })
     updated_at!: Date;
 
-    @ManyToOne(() => Users, (users) => users.bots)
-    user!: number;
+    @OneToMany(() => ActivityLogs, log => log.botRelation)
+    logs?: ActivityLogs[];
 
-    @BeforeInsert()
-    updateTimestamps() {
-        this.created_at = new Date();
+    constructor(partial: Partial<Bots> = {}) {
+        super();
+        Object.assign(this, {
+            isConnected: false,
+            settings: defaultSettings,
+            ...partial
+        });
     }
 
-    @BeforeUpdate()
-    updateTimestampsOnUpdate() {
-        this.updated_at = new Date();
+    // Helper methods
+    async updateSettings(newSettings: Partial<BotSettings>): Promise<void> {
+        this.settings = {
+            ...this.settings,
+            ...newSettings
+        };
+        await this.save();
+    }
+
+    async connect(): Promise<void> {
+        this.isConnected = true;
+        await this.save();
+        if (this.userId) {
+            await this.logActivity('connect', 'Bot connected');
+        }
+    }
+
+    async disconnect(): Promise<void> {
+        this.isConnected = false;
+        await this.save();
+        if (this.userId) {
+            await this.logActivity('disconnect', 'Bot disconnected');
+        }
+    }
+
+    async logActivity(action: LogAction, details?: string, status: LogStatus = 'success'): Promise<ActivityLogs | undefined> {
+        if (!this.userId) return;
+        return await ActivityLogs.createLog(
+            action,
+            this.userId,
+            this.id,
+            details,
+            status
+        );
+    }
+
+    // Static helper methods
+    static async findByUserId(userId: string): Promise<Bots[]> {
+        return await Bots.find({
+            where: { userId },
+            relations: ['user']
+        });
+    }
+
+    static async findByIdWithLogs(id: number): Promise<Bots | null> {
+        return await Bots.findOne({
+            where: { id },
+            relations: ['logs', 'user']
+        });
+    }
+
+    static async findByIdWithUser(id: number): Promise<Bots | null> {
+        return await Bots.findOne({
+            where: { id },
+            relations: ['user']
+        });
+    }
+
+    static async findByIdWithAll(id: number): Promise<Bots | null> {
+        return await Bots.findOne({
+            where: { id },
+            relations: ['user', 'logs']
+        });
     }
 }

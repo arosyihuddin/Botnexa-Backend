@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bots Management - BotNexa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/common.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#1f2937',
+                        'dark-100': '#1a1b1e',
+                        'dark-200': '#141517',
+                        'dark-300': '#0c0d0f',
+                        light: '#f9fafb'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-dark-300 text-secondary dark:text-light transition-colors duration-300">
+    <!-- Sidebar -->
+    <aside class="fixed top-0 left-0 h-screen w-64 bg-white dark:bg-dark-200 border-r border-gray-200 dark:border-dark-100 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+        <!-- Sidebar content will be injected by layout-manager.js -->
+    </aside>
+
+    <!-- Main Content -->
+    <main class="lg:ml-64 min-h-screen">
+        <!-- Top Navigation -->
+        <nav class="bg-white dark:bg-dark-200 border-b border-gray-200 dark:border-dark-100">
+            <div class="px-4 py-3 flex items-center justify-between">
+                <button id="openSidebar" class="lg:hidden text-gray-500 hover:text-primary">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="flex items-center space-x-4 ml-auto">
+                    <div class="relative">
+                        <button id="userMenu" class="flex items-center space-x-2">
+                            <img src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff" alt="User" class="w-8 h-8 rounded-full">
+                            <span id="userName" class="hidden md:inline">User Name</span>
+                            <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Bots Content -->
+        <div class="p-6">
+            <div class="max-w-7xl mx-auto">
+                <!-- Header -->
+                <div class="flex items-center justify-between mb-6">
+                    <h1 class="text-2xl font-semibold">Bots Management</h1>
+                    <button id="createBotBtn" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors duration-200">
+                        <i class="fas fa-plus mr-2"></i>Create Bot
+                    </button>
+                </div>
+
+                <!-- Bots Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bots-grid">
+                    <!-- Bot cards will be injected here -->
+                </div>
+
+                <!-- Create Bot Modal -->
+                <div id="createBotModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+                    <div class="bg-white dark:bg-dark-200 rounded-lg shadow-lg max-w-md w-full mx-4">
+                        <div class="p-6 border-b border-gray-200 dark:border-dark-100">
+                            <h2 class="text-xl font-semibold">Create New Bot</h2>
+                        </div>
+                        <form id="createBotForm" class="p-6 space-y-4">
+                            <div>
+                                <label for="botName" class="block text-sm font-medium mb-1">Bot Name</label>
+                                <input type="text" id="botName" name="botName" required
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary dark:bg-dark-300">
+                            </div>
+                            <div>
+                                <label for="botDescription" class="block text-sm font-medium mb-1">Description</label>
+                                <textarea id="botDescription" name="botDescription" rows="3"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary dark:bg-dark-300"></textarea>
+                            </div>
+                            <div class="flex justify-end space-x-3">
+                                <button type="button" id="cancelCreateBot" 
+                                    class="px-4 py-2 border border-gray-300 dark:border-dark-100 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-100">
+                                    Cancel
+                                </button>
+                                <button type="submit"
+                                    class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+                                    Create Bot
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Bot Settings Modal -->
+                <div id="botSettingsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+                    <div class="bg-white dark:bg-dark-200 rounded-lg shadow-lg max-w-md w-full mx-4">
+                        <div class="p-6 border-b border-gray-200 dark:border-dark-100">
+                            <h2 class="text-xl font-semibold">Bot Settings</h2>
+                        </div>
+                        <form id="botSettingsForm" class="p-6 space-y-4">
+                            <input type="hidden" id="botId">
+                            <div>
+                                <label for="editBotName" class="block text-sm font-medium mb-1">Bot Name</label>
+                                <input type="text" id="editBotName" name="editBotName" required
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary dark:bg-dark-300">
+                            </div>
+                            <div>
+                                <label for="editBotDescription" class="block text-sm font-medium mb-1">Description</label>
+                                <textarea id="editBotDescription" name="editBotDescription" rows="3"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary dark:bg-dark-300"></textarea>
+                            </div>
+                            <div class="flex justify-end space-x-3">
+                                <button type="button" id="cancelBotSettings"
+                                    class="px-4 py-2 border border-gray-300 dark:border-dark-100 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-100">
+                                    Cancel
+                                </button>
+                                <button type="submit"
+                                    class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Common Scripts -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/translations-new.js"></script>
+    <script src="/js/main.js"></script>
+    <script src="/js/layout-manager.js"></script>
+    <script src="/js/authGuard.js"></script>
+    
+    <!-- Page Specific Scripts -->
+    <script type="module" src="/js/bots-new.js"></script>
+</body>
+</html>

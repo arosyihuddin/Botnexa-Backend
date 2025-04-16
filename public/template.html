@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BotNexa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#1f2937',
+                        'dark-100': '#1a1b1e',
+                        'dark-200': '#141517',
+                        'dark-300': '#0c0d0f',
+                        light: '#f9fafb'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-dark-300 text-secondary dark:text-light transition-colors duration-300">
+    <!-- Sidebar -->
+    <aside class="fixed top-0 left-0 h-screen w-64 bg-white dark:bg-dark-200 border-r border-gray-200 dark:border-dark-100 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+        <!-- Sidebar content will be injected by layout.js -->
+    </aside>
+
+    <!-- Main Content -->
+    <main class="lg:ml-64 min-h-screen">
+        <!-- Top Navigation -->
+        <nav class="bg-white dark:bg-dark-200 border-b border-gray-200 dark:border-dark-100">
+            <div class="px-4 py-3 flex items-center justify-between">
+                <button id="openSidebar" class="lg:hidden text-gray-500 hover:text-primary">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="flex items-center space-x-4 ml-auto">
+                    <!-- User menu will be injected by layout.js -->
+                    <div class="relative">
+                        <button id="userMenu" class="flex items-center space-x-2">
+                            <img src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff" alt="User" class="w-8 h-8 rounded-full">
+                            <span id="userName" class="hidden md:inline">User Name</span>
+                            <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Page Content -->
+        <div class="p-6">
+            <!-- Content will be different for each page -->
+        </div>
+    </main>
+
+    <!-- Common Scripts -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/translations-new.js"></script>
+    <script src="/js/main.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/authGuard.js"></script>
+    
+    <!-- Page Specific Scripts -->
+    <!-- Add your page-specific scripts here -->
+</body>
+</html>

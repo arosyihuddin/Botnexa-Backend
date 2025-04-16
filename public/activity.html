@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Logs - BotNexa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/common.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#1f2937',
+                        'dark-100': '#1a1b1e',
+                        'dark-200': '#141517',
+                        'dark-300': '#0c0d0f',
+                        light: '#f9fafb'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-dark-300 text-secondary dark:text-light transition-colors duration-300">
+    <!-- Sidebar -->
+    <aside class="fixed top-0 left-0 h-screen w-64 bg-white dark:bg-dark-200 border-r border-gray-200 dark:border-dark-100 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+        <!-- Sidebar content will be injected by layout-manager.js -->
+    </aside>
+
+    <!-- Main Content -->
+    <main class="lg:ml-64 min-h-screen">
+        <!-- Top Navigation -->
+        <nav class="bg-white dark:bg-dark-200 border-b border-gray-200 dark:border-dark-100">
+            <div class="px-4 py-3 flex items-center justify-between">
+                <button id="openSidebar" class="lg:hidden text-gray-500 hover:text-primary">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="flex items-center space-x-4 ml-auto">
+                    <div class="relative">
+                        <button id="userMenu" class="flex items-center space-x-2">
+                            <img src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff" alt="User" class="w-8 h-8 rounded-full">
+                            <span id="userName" class="hidden md:inline">User Name</span>
+                            <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Activity Content -->
+        <div class="p-6">
+            <div class="max-w-7xl mx-auto">
+                <!-- Header -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 space-y-4 md:space-y-0">
+                    <h1 class="text-2xl font-semibold">Activity Logs</h1>
+                    
+                    <!-- Filters -->
+                    <div class="flex flex-wrap gap-4">
+                        <select id="botFilter" class="px-3 py-2 border border-gray-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary dark:bg-dark-300">
+                            <option value="">All Bots</option>
+                        </select>
+                        <select id="typeFilter" class="px-3 py-2 border border-gray-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary dark:bg-dark-300">
+                            <option value="">All Types</option>
+                            <option value="connection">Connection</option>
+                            <option value="message">Message</option>
+                            <option value="error">Error</option>
+                        </select>
+                        <select id="statusFilter" class="px-3 py-2 border border-gray-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary dark:bg-dark-300">
+                            <option value="">All Status</option>
+                            <option value="success">Success</option>
+                            <option value="error">Error</option>
+                            <option value="pending">Pending</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Activity Table -->
+                <div class="bg-white dark:bg-dark-200 rounded-lg shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full activity-table table-loading">
+                            <thead>
+                                <tr class="text-left border-b border-gray-200 dark:border-dark-100">
+                                    <th class="p-4">Time</th>
+                                    <th class="p-4">Bot</th>
+                                    <th class="p-4">Type</th>
+                                    <th class="p-4">Description</th>
+                                    <th class="p-4">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Activity logs will be injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="p-4 border-t border-gray-200 dark:border-dark-100 flex items-center justify-between">
+                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                            Showing <span id="pageInfo">0-0 of 0</span> results
+                        </div>
+                        <div class="flex space-x-2">
+                            <button id="prevPage" class="px-3 py-1 border border-gray-300 dark:border-dark-100 rounded hover:bg-gray-100 dark:hover:bg-dark-100 disabled:opacity-50">
+                                Previous
+                            </button>
+                            <button id="nextPage" class="px-3 py-1 border border-gray-300 dark:border-dark-100 rounded hover:bg-gray-100 dark:hover:bg-dark-100 disabled:opacity-50">
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Common Scripts -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/translations-new.js"></script>
+    <script src="/js/main.js"></script>
+    <script src="/js/layout-manager.js"></script>
+    <script src="/js/authGuard.js"></script>
+    
+    <!-- Page Specific Scripts -->
+    <script type="module" src="/js/activity-new.js"></script>
+</body>
+</html>

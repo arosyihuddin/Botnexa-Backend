@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - BotNexa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#1f2937',
+                        'dark-100': '#1a1b1e',
+                        'dark-200': '#141517',
+                        'dark-300': '#0c0d0f',
+                        light: '#f9fafb'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-white dark:bg-dark-300 text-secondary dark:text-light transition-colors duration-300">
+    <div class="flex min-h-screen">
+        <!-- Left side with image -->
+        <div class="hidden lg:flex lg:w-1/2 bg-primary items-center justify-center">
+            <div class="max-w-md text-center">
+                <h1 class="text-4xl font-bold text-white mb-4">Welcome Back!</h1>
+                <p class="text-white/80">Log in to access your AI-powered virtual assistant</p>
+            </div>
+        </div>
+
+        <!-- Right side with form -->
+        <div class="w-full lg:w-1/2 flex flex-col">
+            <!-- Theme toggle and language select -->
+            <div class="p-6 flex justify-between items-center">
+                <select id="languageSelect" class="bg-transparent dark:text-light border border-gray-300 dark:border-gray-600 rounded px-2 py-1">
+                    <option value="en">English</option>
+                    <option value="id">Indonesia</option>
+                </select>
+                <button id="themeToggle" class="p-2">
+                    <i class="fas fa-sun text-yellow-500"></i>
+                    <i class="fas fa-moon text-blue-500 hidden"></i>
+                </button>
+            </div>
+
+            <!-- Login form -->
+            <div class="flex-grow flex items-center justify-center px-6">
+                <div class="w-full max-w-md">
+                    <div class="text-center mb-8">
+                        <a href="/" class="text-3xl font-bold text-primary">BotNexa</a>
+                        <h2 class="mt-6 text-2xl font-semibold">Sign in to your account</h2>
+                        <p class="mt-2 text-gray-600 dark:text-gray-400">Or <a href="register.html" class="text-primary hover:underline">create a new account</a></p>
+                    </div>
+
+                    <form class="space-y-6">
+                        <div>
+                            <label for="email" class="block text-sm font-medium mb-2">Email address</label>
+                            <input type="email" id="email" name="email" required autocomplete="username email"
+                                class="w-full px-4 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 focus:ring-2 focus:ring-primary focus:border-transparent">
+                        </div>
+
+                        <div>
+                            <label for="password" class="block text-sm font-medium mb-2">Password</label>
+                            <input type="password" id="password" name="password" required autocomplete="current-password"
+                                class="w-full px-4 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 focus:ring-2 focus:ring-primary focus:border-transparent">
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="remember" name="remember" 
+                                    class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded">
+                                <label for="remember" class="ml-2 block text-sm">Remember me</label>
+                            </div>
+                            <a href="#" class="text-sm text-primary hover:underline">Forgot password?</a>
+                        </div>
+
+                        <button type="submit" 
+                            class="w-full py-2 px-4 bg-primary hover:bg-primary/90 text-white rounded transition duration-300">
+                            Sign in
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/authGuard.js"></script>
+    <script src="js/auth.js" defer></script>
+    <script>
+        // Check authentication status on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            authGuard.redirectIfAuthenticated();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Settings - BotNexa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/settings.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#1f2937',
+                        'dark-100': '#1a1b1e',
+                        'dark-200': '#141517',
+                        'dark-300': '#0c0d0f',
+                        light: '#f9fafb'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-dark-300 text-secondary dark:text-light transition-colors duration-300">
+    <!-- Sidebar -->
+    <aside class="fixed top-0 left-0 h-screen w-64 bg-white dark:bg-dark-200 border-r border-gray-200 dark:border-dark-100 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+        <!-- Sidebar content will be injected by layout-manager.js -->
+    </aside>
+
+    <!-- Main Content -->
+    <main class="lg:ml-64 min-h-screen">
+        <!-- Top Navigation -->
+        <nav class="bg-white dark:bg-dark-200 border-b border-gray-200 dark:border-dark-100">
+            <div class="px-4 py-3 flex items-center justify-between">
+                <button id="openSidebar" class="lg:hidden text-gray-500 hover:text-primary">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="flex items-center space-x-4 ml-auto">
+                    <div class="relative">
+                        <button id="userMenu" class="flex items-center space-x-2">
+                            <img src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff" alt="User" class="w-8 h-8 rounded-full">
+                            <span id="userName" class="hidden md:inline">User Name</span>
+                            <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Settings Content -->
+        <div class="p-6">
+            <div class="max-w-6xl mx-auto">
+                <h1 class="text-2xl font-semibold mb-6">Account Settings</h1>
+
+                <div class="flex flex-col md:flex-row gap-6">
+                    <!-- Settings Navigation -->
+                    <div class="w-full md:w-64 space-y-1">
+                        <button data-section="general" class="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-100 active-setting settings-nav-btn">
+                            <i class="fas fa-user mr-2"></i>General
+                        </button>
+                        <button data-section="security" class="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-100 settings-nav-btn">
+                            <i class="fas fa-shield-alt mr-2"></i>Security
+                        </button>
+                        <button data-section="payment" class="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-100 settings-nav-btn">
+                            <i class="fas fa-credit-card mr-2"></i>Payment
+                        </button>
+                        <button data-section="notifications" class="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-100 settings-nav-btn">
+                            <i class="fas fa-bell mr-2"></i>Notifications
+                        </button>
+                        <button data-section="preferences" class="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-100 settings-nav-btn">
+                            <i class="fas fa-cog mr-2"></i>Preferences
+                        </button>
+                    </div>
+
+                    <!-- Settings Content -->
+                    <div class="flex-1">
+                        <!-- General Settings -->
+                        <div id="general" class="setting-section">
+                            <div class="bg-white dark:bg-dark-200 rounded-lg shadow-sm">
+                                <div class="p-6 border-b border-gray-200 dark:border-dark-100">
+                                    <h2 class="text-xl font-semibold">Profile Information</h2>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Update your account's profile information.</p>
+                                </div>
+                                <div class="p-6">
+                                    <form id="profileForm" class="space-y-4">
+                                        <div>
+                                            <label for="name" class="block text-sm font-medium mb-1">Name</label>
+                                            <input type="text" id="name" name="name" class="w-full px-3 py-2 border border-gray-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary dark:bg-dark-300">
+                                        </div>
+                                        <div>
+                                            <label for="email" class="block text-sm font-medium mb-1">Email</label>
+                                            <input type="email" id="email" name="email" class="w-full px-3 py-2 border border-gray-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary dark:bg-dark-300" readonly>
+                                        </div>
+                                        <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+                                            Save Changes
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Security Settings -->
+                        <div id="security" class="setting-section hidden">
+                            <div class="bg-white dark:bg-dark-200 rounded-lg shadow-sm mb-6">
+                                <div class="p-6 border-b border-gray-200 dark:border-dark-100">
+                                    <h2 class="text-xl font-semibold">Change Password</h2>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Ensure your account is using a secure password.</p>
+                                </div>
+                                <div class="p-6">
+                                    <form id="passwordForm" class="space-y-4">
+                                        <div>
+                                            <label for="currentPassword" class="block text-sm font-medium mb-1">Current Password</label>
+                                            <input type="password" id="currentPassword" name="currentPassword" class="w-full px-3 py-2 border border-gray-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary dark:bg-dark-300">
+                                        </div>
+                                        <div>
+                                            <label for="newPassword" class="block text-sm font-medium mb-1">New Password</label>
+                                            <input type="password" id="newPassword" name="newPassword" class="w-full px-3 py-2 border border-gray-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary dark:bg-dark-300">
+                                        </div>
+                                        <div>
+                                            <label for="confirmPassword" class="block text-sm font-medium mb-1">Confirm Password</label>
+                                            <input type="password" id="confirmPassword" name="confirmPassword" class="w-full px-3 py-2 border border-gray-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary dark:bg-dark-300">
+                                        </div>
+                                        <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+                                            Change Password
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="bg-white dark:bg-dark-200 rounded-lg shadow-sm">
+                                <div class="p-6 border-b border-gray-200 dark:border-dark-100">
+                                    <h2 class="text-xl font-semibold">Two-Factor Authentication</h2>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Add additional security to your account.</p>
+                                </div>
+                                <div class="p-6">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h3 class="font-medium">Enable 2FA</h3>
+                                            <p class="text-sm text-gray-500">Secure your account with two-factor authentication.</p>
+                                        </div>
+                                        <button class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+                                            Setup 2FA
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Payment Settings -->
+                        <div id="payment" class="setting-section hidden">
+                            <div class="bg-white dark:bg-dark-200 rounded-lg shadow-sm mb-6">
+                                <div class="p-6 border-b border-gray-200 dark:border-dark-100">
+                                    <h2 class="text-xl font-semibold">Payment Methods</h2>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage your payment methods.</p>
+                                </div>
+                                <div class="p-6">
+                                    <div class="space-y-4">
+                                        <!-- Payment Method List -->
+                                        <div class="border border-gray-200 dark:border-dark-100 rounded-lg p-4 flex items-center justify-between">
+                                            <div class="flex items-center space-x-4">
+                                                <i class="fab fa-cc-visa text-2xl"></i>
+                                                <div>
+                                                    <p class="font-medium">Visa ending in 4242</p>
+                                                    <p class="text-sm text-gray-500">Expires 12/24</p>
+                                                </div>
+                                            </div>
+                                            <button class="text-red-500 hover:text-red-600">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+
+                                        <!-- Add Payment Method Button -->
+                                        <button class="w-full px-4 py-2 border-2 border-dashed border-gray-300 dark:border-dark-100 rounded-lg text-center hover:border-primary hover:text-primary">
+                                            <i class="fas fa-plus mr-2"></i>Add Payment Method
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white dark:bg-dark-200 rounded-lg shadow-sm">
+                                <div class="p-6 border-b border-gray-200 dark:border-dark-100">
+                                    <h2 class="text-xl font-semibold">Billing History</h2>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">View your billing history.</p>
+                                </div>
+                                <div class="p-6">
+                                    <table class="w-full">
+                                        <thead>
+                                            <tr class="text-left border-b border-gray-200 dark:border-dark-100">
+                                                <th class="pb-3">Date</th>
+                                                <th class="pb-3">Amount</th>
+                                                <th class="pb-3">Status</th>
+                                                <th class="pb-3">Invoice</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="text-sm">
+                                            <tr class="border-b border-gray-200 dark:border-dark-100">
+                                                <td class="py-3">Dec 1, 2023</td>
+                                                <td class="py-3">$29.99</td>
+                                                <td class="py-3">
+                                                    <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Paid</span>
+                                                </td>
+                                                <td class="py-3">
+                                                    <button class="text-primary hover:text-primary/80">
+                                                        <i class="fas fa-download"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notifications Settings -->
+                        <div id="notifications" class="setting-section hidden">
+                            <div class="bg-white dark:bg-dark-200 rounded-lg shadow-sm">
+                                <div class="p-6 border-b border-gray-200 dark:border-dark-100">
+                                    <h2 class="text-xl font-semibold">Notification Preferences</h2>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage how you receive notifications.</p>
+                                </div>
+                                <div class="p-6">
+                                    <form class="space-y-6">
+                                        <div>
+                                            <h3 class="font-medium mb-4">Email Notifications</h3>
+                                            <div class="space-y-3">
+                                                <label class="flex items-center">
+                                                    <input type="checkbox" class="form-checkbox text-primary">
+                                                    <span class="ml-2">Bot Status Updates</span>
+                                                </label>
+                                                <label class="flex items-center">
+                                                    <input type="checkbox" class="form-checkbox text-primary">
+                                                    <span class="ml-2">Security Alerts</span>
+                                                </label>
+                                                <label class="flex items-center">
+                                                    <input type="checkbox" class="form-checkbox text-primary">
+                                                    <span class="ml-2">Billing Updates</span>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <h3 class="font-medium mb-4">Push Notifications</h3>
+                                            <div class="space-y-3">
+                                                <label class="flex items-center">
+                                                    <input type="checkbox" class="form-checkbox text-primary">
+                                                    <span class="ml-2">Bot Connection Status</span>
+                                                </label>
+                                                <label class="flex items-center">
+                                                    <input type="checkbox" class="form-checkbox text-primary">
+                                                    <span class="ml-2">New Messages</span>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+                                            Save Preferences
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Preferences Settings -->
+                        <div id="preferences" class="setting-section hidden">
+                            <div class="bg-white dark:bg-dark-200 rounded-lg shadow-sm">
+                                <div class="p-6 border-b border-gray-200 dark:border-dark-100">
+                                    <h2 class="text-xl font-semibold">App Preferences</h2>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Customize your app experience.</p>
+                                </div>
+                                <div class="p-6">
+                                    <form id="preferencesForm" class="space-y-4">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label class="font-medium">Dark Mode</label>
+                                                <p class="text-sm text-gray-500 dark:text-gray-400">Toggle dark mode theme</p>
+                                            </div>
+                                            <button id="themeToggle" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-100 rounded-lg">
+                                                <i class="fas fa-sun text-yellow-500"></i>
+                                                <i class="fas fa-moon text-blue-500 hidden"></i>
+                                            </button>
+                                        </div>
+                                        <div>
+                                            <label for="language" class="block text-sm font-medium mb-1">Language</label>
+                                            <select id="language" name="language" class="w-full px-3 py-2 border border-gray-300 dark:border-dark-100 rounded-lg focus:outline-none focus:border-primary dark:bg-dark-300">
+                                                <option value="en">English</option>
+                                                <option value="id">Indonesia</option>
+                                            </select>
+                                        </div>
+                                        <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+                                            Save Preferences
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Common Scripts -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/translations-new.js"></script>
+    <script src="/js/main.js"></script>
+    <script src="/js/layout-manager.js"></script>
+    <script src="/js/authGuard.js"></script>
+    
+    <!-- Page Specific Scripts -->
+    <script type="module" src="/js/settings-new.js"></script>
+</body>
+</html>

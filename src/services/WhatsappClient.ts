@@ -1,8 +1,16 @@
-import makeWASocket, { delay, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, useMultiFileAuthState, DisconnectReason } from "@whiskeysockets/baileys";
+import makeWASocket, { 
+    delay, 
+    fetchLatestBaileysVersion, 
+    makeCacheableSignalKeyStore, 
+    useMultiFileAuthState, 
+    DisconnectReason 
+} from "@whiskeysockets/baileys";
 import NodeCache from "node-cache";
 import P from "pino";
 import { Boom } from '@hapi/boom'
+import { Bots } from '../database/entities/Bots';
 import dotenv from 'dotenv';
+import { Server } from 'socket.io';
 dotenv.config();
 
 const logger: any = P({
@@ -12,46 +20,34 @@ logger.level = process.env.LOG_LEVEL || 'info';
 
 const msgRetryCounterCache = new NodeCache();
 
-// Function to convert JSON Buffer objects to actual Buffer instances
-const convertJsonBuffersToBuffers = (obj: any): any => {
-    if (Array.isArray(obj)) {
-        return obj.map(convertJsonBuffersToBuffers);
-    } else if (typeof obj === 'object' && obj !== null) {
-        if (obj.type === 'Buffer' && Array.isArray(obj.data)) {
-            return Buffer.from(obj.data);
-        }
-        return Object.keys(obj).reduce((acc, key) => {
-            acc[key] = convertJsonBuffersToBuffers(obj[key]);
-            return acc;
-        }, {} as any);
-    }
-    return obj;
-};
-
 // Map to hold multiple bot sockets
 const botSockets: { [botId: number]: any } = {};
-export const startBot = async (botId: number, phoneNumber: string, usePairingCode = false, io: any) => {
+
+export const startBot = async (botId: number, phoneNumber: string, usePairingCode = false, io: Server) => {
     try {
         if (botSockets[botId]) {
             await botSockets[botId].end();
             delete botSockets[botId];
         }
+
         // Initialize store for signal keys
         const { state, saveCreds } = await useMultiFileAuthState(`auth_info_${botId}`);
         const { version, isLatest } = await fetchLatestBaileysVersion();
-        console.log(`Menggunakan WA v${version.join('.')}, isLatest: ${isLatest}`);
+        console.log(`Using WA v${version.join('.')}, isLatest: ${isLatest}`);
 
         const sock = makeWASocket({
             version,
             logger,
-            printQRInTerminal: !usePairingCode,
+            printQRInTerminal: true,
             auth: {
                 creds: state.creds,
                 keys: makeCacheableSignalKeyStore(state.keys, logger)
             },
-            msgRetryCounterCache: msgRetryCounterCache,
+            msgRetryCounterCache,
             generateHighQualityLinkPreview: true,
-            getMessage: getMessage,
+            getMessage: async () => {
+                return { conversation: 'hello' }; // Default message for now
+            }
         });
 
         // Store the socket in the map
@@ -59,77 +55,135 @@ export const startBot = async (botId: number, phoneNumber: string, usePairingCod
 
         // Handle pairing code for web client
         if (usePairingCode && !sock.authState.creds.registered) {
-            console.log("Mengambil Kode Pairing...");
-            await delay(6000);
-            const code = await sock.requestPairingCode(phoneNumber);
-            console.log(`Kode Pairing: ${code}`);
-            io.emit('pairingCode', code);
+            console.log("Getting pairing code...");
+            await delay(3000);
+            try {
+                const code = await sock.requestPairingCode(phoneNumber);
+                console.log(`Pairing code: ${code}`);
+                io.emit('pairingCode', { botId, code });
+                return code;
+            } catch (error) {
+                console.error('Error requesting pairing code:', error);
+                throw error;
+            }
         }
 
-        console.log("Menghubungkan ke Whatsapp...");
+        // Connection update handler
+        sock.ev.on('connection.update', async (update) => {
+            const { connection, lastDisconnect, qr } = update;
 
-        // Process all received events
-        sock.ev.process(async (events) => {
-            if (events['connection.update']) {
-                const update = events['connection.update'];
-                const { connection, qr } = update;
+            if (qr) {
+                // Emit QR code to frontend
+                io.emit('qr', { botId, qr });
+                console.log(`[INFO] New QR code emitted for bot ${botId}`);
+                return qr;
+            }
 
-                if (qr) {
-                    io.to(botId).emit('qr', { botId, qr });
-                }
+            if (connection === 'open') {
+                console.log(`Bot ${botId} connected!`);
+                
+                // Update bot status in database
+                await Bots.update(botId, { isConnected: true });
+                
+                // Emit connection status
+                io.emit('connection_update', { 
+                    botId, 
+                    connected: true,
+                    status: 'connected'
+                });
+            }
 
-                if (connection === 'open') {
-                    io.to(botId).emit('status', {
-                        botId,
-                        status: 'connected'
-                    });
+            if (connection === 'close') {
+                const shouldReconnect = (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
+                console.log(`Bot ${botId} connection closed. Reconnecting:`, shouldReconnect);
+                
+                // Update bot status in database
+                await Bots.update(botId, { isConnected: false });
+                
+                // Emit connection status
+                io.emit('connection_update', { 
+                    botId, 
+                    connected: false,
+                    status: 'disconnected'
+                });
+
+                if (shouldReconnect) {
+                    await startBot(botId, phoneNumber, usePairingCode, io);
                 }
             }
+
+            if (connection === 'connecting') {
+                io.emit('connection_update', { 
+                    botId, 
+                    status: 'connecting'
+                });
+            }
+        });
+
+        // Credentials update handler
+        sock.ev.on('creds.update', saveCreds);
+
+        // Messages handler
+        sock.ev.on('messages.upsert', async (m) => {
+            console.log(`[INFO] New message for bot ${botId}:`, JSON.stringify(m, undefined, 2));
         });
 
         return sock;
     } catch (error) {
-        io.to(botId).emit('error', {
+        console.error(`Error starting bot ${botId}:`, error);
+        io.emit('error', {
             botId,
-            message: "Gagal menghubungkan bot: " + error
+            message: "Failed to connect bot: " + error
         });
+        throw error;
     }
 };
 
-const getMessage = async (key: any): Promise<any> => {
-    return null; // Implement as needed
-};
-
-const handleConnectionUpdate = async (update: any, sock: any, botId: number, io: any, phoneNumber: string) => {
-    const { connection, lastDisconnect, qr } = update;
-    if (qr) {
-        io.emit('qr', qr);
-    }
-    if (connection === 'open') {
-        io.emit('connection-status', 'connected');
-    }
-    if (connection === 'close') {
-        io.emit('connection-status', 'disconnected');
-        const shouldReconnect = (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
-        if (shouldReconnect) {
-            console.log('Koneksi ditutup. Mencoba menyambung ulang...');
-            await startBot(botId, phoneNumber, false, io) // Rekoneksi
+export const disconnectBot = async (botId: number): Promise<void> => {
+    try {
+        const sock = botSockets[botId];
+        if (sock) {
+            // Properly close all event listeners
+            sock.ev.removeAllListeners('connection.update');
+            sock.ev.removeAllListeners('creds.update');
+            sock.ev.removeAllListeners('messages.upsert');
+            
+            // End the socket connection
+            await sock.logout();
+            await sock.end();
+            
+            // Clean up auth files
+            const fs = require('fs');
+            const path = require('path');
+            const authPath = `auth_info_${botId}`;
+            if (fs.existsSync(authPath)) {
+                fs.rmSync(authPath, { recursive: true, force: true });
+            }
+            
+            // Remove from active sockets
+            delete botSockets[botId];
+            
+            // Update bot status in database
+            await Bots.update(botId, { isConnected: false });
+            
+            console.log(`[INFO] Bot ${botId} disconnected and cleaned up successfully`);
         } else {
-            console.log('Koneksi ditutup. Anda telah logout.');
-
+            console.log(`[INFO] No active socket found for bot ${botId}`);
+            
+            // Still update database status just in case
+            await Bots.update(botId, { isConnected: false });
         }
+    } catch (error) {
+        console.error(`[ERROR] Failed to disconnect bot ${botId}:`, error);
+        
+        // Try to clean up even if there's an error
+        try {
+            delete botSockets[botId];
+            await Bots.update(botId, { isConnected: false });
+        } catch (cleanupError) {
+            console.error(`[ERROR] Failed to clean up bot ${botId}:`, cleanupError);
+        }
+        
+        throw error;
     }
-    if (connection === 'connecting') {
-        io.emit('connection-status', 'connecting');
-    }
-    if (lastDisconnect && lastDisconnect.error) {
-        logger.error('Last disconnect error:', lastDisconnect.error);
-        io.emit('error', lastDisconnect.error.message);
-    }
-};
-
-const handleMessagesUpsert = async (upsert: any, sock: any) => {
-    // Handle messages upsert
-    // console.log('Messages Upsert:', upsert);
-    sock.ev.emit('messages.upsert', upsert);
 };

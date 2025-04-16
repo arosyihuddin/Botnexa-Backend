@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - BotNexa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/common.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#1f2937',
+                        'dark-100': '#1a1b1e',
+                        'dark-200': '#141517',
+                        'dark-300': '#0c0d0f',
+                        light: '#f9fafb'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-dark-300 text-secondary dark:text-light transition-colors duration-300">
+    <!-- Sidebar -->
+    <aside class="fixed top-0 left-0 h-screen w-64 bg-white dark:bg-dark-200 border-r border-gray-200 dark:border-dark-100 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+        <!-- Sidebar content will be injected by layout-manager.js -->
+    </aside>
+
+    <!-- Main Content -->
+    <main class="lg:ml-64 min-h-screen">
+        <!-- Top Navigation -->
+        <nav class="bg-white dark:bg-dark-200 border-b border-gray-200 dark:border-dark-100">
+            <div class="px-4 py-3 flex items-center justify-between">
+                <button id="openSidebar" class="lg:hidden text-gray-500 hover:text-primary">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="flex items-center space-x-4 ml-auto">
+                    <div class="relative">
+                        <button id="userMenu" class="flex items-center space-x-2">
+                            <img src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff" alt="User" class="w-8 h-8 rounded-full">
+                            <span id="userName" class="hidden md:inline">User Name</span>
+                            <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Dashboard Content -->
+        <div class="p-6">
+            <div class="max-w-7xl mx-auto">
+                <!-- Statistics -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6 dashboard-stats">
+                    <!-- Total Bots -->
+                    <div class="bg-white dark:bg-dark-200 p-6 rounded-lg shadow-sm card-loading">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Total Bots</p>
+                                <h3 class="text-2xl font-semibold mt-1" data-stat="totalBots">0</h3>
+                            </div>
+                            <div class="text-primary">
+                                <i class="fas fa-robot text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Active Bots -->
+                    <div class="bg-white dark:bg-dark-200 p-6 rounded-lg shadow-sm card-loading">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Active Bots</p>
+                                <h3 class="text-2xl font-semibold mt-1" data-stat="activeBots">0</h3>
+                            </div>
+                            <div class="text-green-500">
+                                <i class="fas fa-check-circle text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Total Messages -->
+                    <div class="bg-white dark:bg-dark-200 p-6 rounded-lg shadow-sm card-loading">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Total Messages</p>
+                                <h3 class="text-2xl font-semibold mt-1" data-stat="totalMessages">0</h3>
+                            </div>
+                            <div class="text-blue-500">
+                                <i class="fas fa-comments text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Success Rate -->
+                    <div class="bg-white dark:bg-dark-200 p-6 rounded-lg shadow-sm card-loading">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Success Rate</p>
+                                <h3 class="text-2xl font-semibold mt-1" data-stat="successRate">0%</h3>
+                            </div>
+                            <div class="text-yellow-500">
+                                <i class="fas fa-chart-line text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bot Status and Recent Activities -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Bot Status -->
+                    <div class="bg-white dark:bg-dark-200 rounded-lg shadow-sm">
+                        <div class="p-6 border-b border-gray-200 dark:border-dark-100">
+                            <h2 class="text-xl font-semibold">Bot Status</h2>
+                        </div>
+                        <div class="p-6">
+                            <div class="overflow-x-auto">
+                                <table class="w-full bot-status table-loading">
+                                    <thead>
+                                        <tr class="text-left border-b border-gray-200 dark:border-dark-100">
+                                            <th class="pb-3">Name</th>
+                                            <th class="pb-3">Status</th>
+                                            <th class="pb-3">Last Activity</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Bot status will be injected here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activities -->
+                    <div class="bg-white dark:bg-dark-200 rounded-lg shadow-sm">
+                        <div class="p-6 border-b border-gray-200 dark:border-dark-100">
+                            <h2 class="text-xl font-semibold">Recent Activities</h2>
+                        </div>
+                        <div class="p-6">
+                            <div class="overflow-x-auto">
+                                <table class="w-full recent-activities table-loading">
+                                    <thead>
+                                        <tr class="text-left border-b border-gray-200 dark:border-dark-100">
+                                            <th class="pb-3">Time</th>
+                                            <th class="pb-3">Type</th>
+                                            <th class="pb-3">Description</th>
+                                            <th class="pb-3">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Activities will be injected here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Common Scripts -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/translations-new.js"></script>
+    <script src="/js/main.js"></script>
+    <script src="/js/layout-manager.js"></script>
+    <script src="/js/authGuard.js"></script>
+    
+    <!-- Page Specific Scripts -->
+    <script type="module" src="/js/dashboard-new.js"></script>
+</body>
+</html>

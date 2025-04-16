@@ -1,4 +1,4 @@
-// index.ts
+// main.ts
 import "reflect-metadata";
 import express from "express";
 import { createServer } from "http";
@@ -7,6 +7,7 @@ import { AppDataSource } from "./config/typeorm.config";
 import userRoutes from './api/routes/userRoutes';
 import botRoutes from './api/routes/botRoutes';
 import logRoutes from './api/routes/logRoutes';
+import settingsRoutes from './api/routes/settings.routes';
 import { Bots } from "./database/entities/Bots";
 import { startBot } from "./services/WhatsappClient";
 import loggerMiddleware from "./api/middlewares/loggerMiddleware";
@@ -35,6 +36,7 @@ app.set('io', io);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/bots", authenticate, botRoutes);
 app.use("/api/v1/logs", logRoutes);
+app.use("/api/v1/settings", settingsRoutes);
 
 AppDataSource.initialize()
     .then(async () => {
