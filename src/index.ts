@@ -7,6 +7,7 @@ import { AppDataSource } from "./config/typeorm.config";
 import userRoutes from './api/routes/userRoutes';
 import botRoutes from './api/routes/botRoutes';
 import logRoutes from './api/routes/logRoutes';
+import settingsRoutes from './api/routes/settings.routes';
 import { Bots } from "./database/entities/Bots";
 import { startBot } from "./services/WhatsappClient";
 import loggerMiddleware from "./api/middlewares/loggerMiddleware";
@@ -35,6 +36,7 @@ app.set('io', io);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/bots", authenticate, botRoutes);
 app.use("/api/v1/logs", logRoutes);
+// app.use("/api/v1/settings", settingsRoutes);
 
 AppDataSource.initialize()
     .then(async () => {
@@ -43,7 +45,7 @@ AppDataSource.initialize()
         // Start Bot Service
         const bots = await Bots.find({ where: { isConnected: true } });
         for (const bot of bots) {
-            startBot(bot.id, bot.number, true, io);
+            startBot(bot.id, bot.number, false, io);
         }
 
         server.listen(port, () => {
@@ -58,11 +60,6 @@ AppDataSource.initialize()
 // Handle koneksi Socket.io
 io.on('connection', (socket) => {
     logger.info(`Client terhubung: ${socket.id}`);
-
-    socket.on('joinBotRoom', (botId) => {
-        socket.join(botId);
-        logger.info(`Client ${socket.id} masuk ke room bot ${botId}`);
-    });
 
     socket.on('disconnect', () => {
         logger.warn(`Client terputus: ${socket.id}`);

@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
 import { Profiles } from "../database/entities/Profiles";
 import { ActivityLogs, LogAction } from "../database/entities/ActivityLogs";
-import * as bcrypt from "bcrypt";
 import * as jwt from "jsonwebtoken";
 import { Bots } from "../database/entities/Bots";
+import { supabase } from "../config/supabase.config";
 
 // Get user profile
 export const getProfile = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -103,75 +103,6 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
     }
 };
 
-// Change password
-// export const changePassword = async (req: AuthRequest, res: Response): Promise<void> => {
-//     try {
-//         const userId = req.user?.id;
-//         if (!userId) {
-//             res.status(401).json({
-//                 status: "error",
-//                 message: "Unauthorized"
-//             });
-//             return;
-//         }
-
-//         const { currentPassword, newPassword } = req.body;
-//         if (!currentPassword || !newPassword) {
-//             res.status(400).json({
-//                 status: "error",
-//                 message: "Current password and new password are required"
-//             });
-//             return;
-//         }
-
-//         const user = await Profiles.findOne({
-//             where: { id: userId },
-//             select: ["id", "password"]
-//         });
-
-//         if (!user) {
-//             res.status(404).json({
-//                 status: "error",
-//                 message: "User not found"
-//             });
-//             return;
-//         }
-
-//         // Verify current password
-//         const isValid = await user.verifyPassword(currentPassword);
-//         if (!isValid) {
-//             res.status(400).json({
-//                 status: "error",
-//                 message: "Current password is incorrect"
-//             });
-//             return;
-//         }
-
-//         // Update password
-//         await user.setPassword(newPassword);
-
-//         // Log activity
-//         await ActivityLogs.createLog(
-//             'update',
-//             user.id,
-//             undefined,
-//             'Password changed',
-//             'success'
-//         );
-
-//         res.json({
-//             status: "success",
-//             message: "Password updated successfully"
-//         });
-//     } catch (error) {
-//         console.error('Error changing password:', error);
-//         res.status(500).json({
-//             status: "error",
-//             message: "Internal server error"
-//         });
-//     }
-// };
-
 // Update user preferences
 export const updatePreferences = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
@@ -234,26 +165,25 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const { name, email, password } = req.body;
 
     try {
-        // Check if user already exists
-        const existingUser = await Profiles.findOne({ where: { email } });
-        if (existingUser) {
-            res.status(400).json({ status: "error", message: "Email sudah terdaftar." });
+        const { data, error } = await supabase.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+                data: {
+                    display_name: name
+                }
+            }
+        });
+
+        if (error) {
+            res.status(400).json({ status: "error", message: error.message });
             return;
         }
-
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Create user
-        const user = new Profiles();
-        user.name = name;
-        user.email = email;
-        await user.save();
 
         // Log activity
         await ActivityLogs.createLog(
             'create',
-            user.supabase_uid,
+            data.user?.id!,
             undefined,
             'User registered',
             'success'
@@ -266,61 +196,29 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
-// export const login = async (req: Request, res: Response): Promise<void> => {
-//     const { email, password } = req.body;
+export const login = async (req: Request, res: Response): Promise<void> => {
+    const { email, password } = req.body;
+    const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password
+    })
 
-//     try {
-//         // Find user
-//         const user = await Profiles.findOne({ where: { email } });
-//         if (!user) {
-//             res.status(401).json({ status: "error", message: "Email atau password salah." });
-//             return;
-//         }
+    if (error) {
+        res.status(401).json({ status: "error", message: "Email atau password salah." });
+        return;
+    }
 
-//         // Check password
-//         if (!user.password) {
-//             res.status(401).json({ status: "error", message: "Password tidak ditemukan." });
-//             return;
-//         }
+    // Log activity
+    await ActivityLogs.createLog(
+        'login',
+        data.user.id,
+        undefined,
+        'User logged in',
+        'success'
+    );
 
-//         const validPassword = await bcrypt.compare(password, user.password);
-//         if (!validPassword) {
-//             res.status(401).json({ status: "error", message: "Email atau password salah." });
-//             return;
-//         }
-
-//         // Generate token
-//         const token = jwt.sign(
-//             { id: user.id },
-//             process.env.JWT_SECRET || 'jarvisai',
-//             { expiresIn: '24h' }
-//         );
-
-//         // Log activity
-//         await ActivityLogs.createLog(
-//             'login',
-//             user.id,
-//             undefined,
-//             'User logged in',
-//             'success'
-//         );
-
-//         res.status(200).json({
-//             status: "success",
-//             data: {
-//                 token,
-//                 user: {
-//                     id: user.id,
-//                     name: user.name,
-//                     email: user.email
-//                 }
-//             }
-//         });
-//     } catch (error) {
-//         console.error('Error logging in:', error);
-//         res.status(500).json({ status: "error", message: "Terjadi kesalahan saat login." });
-//     }
-// };
+    res.status(200).json({ status: "success", data: data });
+};
 
 export const getAllUsers = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -359,7 +257,8 @@ export const getUserBots = async (req: Request, res: Response): Promise<void> =>
 
     try {
         const bots = await Bots.find({
-            where: { userId }
+            where: { userId },
+            withDeleted: false
         });
         res.status(200).json({ status: "success", data: bots });
     } catch (error) {
@@ -442,23 +341,5 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
     } catch (error) {
         console.error('Error deleting user:', error);
         res.status(500).json({ status: "error", message: "Terjadi kesalahan saat menghapus pengguna." });
-    }
-};
-
-export const verifyToken = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const token = req.headers.authorization?.split(" ")[1];
-        if (!token) {
-            res.status(401).json({ status: "error", message: "Token tidak ditemukan." });
-            return
-        }
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || "jarvisai");
-        if (!decoded) {
-            res.status(401).json({ status: "error", message: "Token tidak valid." });
-            return
-        }
-        res.status(200).json({ status: "success", message: "Token valid." });
-    } catch (error) {
-        res.status(500).json({ status: "error", message: "Terjadi kesalahan saat verifikasi token." });
     }
 };

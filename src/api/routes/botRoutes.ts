@@ -5,11 +5,10 @@ import {
     createBot,
     updateBot,
     deleteBot,
-    getQRCode,
-    getPairingCode,
     disconnectBot,
     getBotSettings,
-    updateBotSettings
+    updateBotSettings,
+    connectBot
 } from '../../controllers/botController';
 import { authenticate } from '../middlewares/authenticate';
 
@@ -26,8 +25,7 @@ router.put('/:id', updateBot);
 router.delete('/:id', deleteBot);
 
 // Bot connection operations
-router.get('/:id/qr', getQRCode);
-router.get('/:id/pair', getPairingCode);
+router.post('/:id/connect', connectBot);
 router.post('/:id/disconnect', disconnectBot);
 
 // Bot settings operations

@@ -2,15 +2,13 @@ import { Router } from 'express';
 import {
     getAllUsers,
     getUserById,
-    register,
     deleteUser,
     updateUser,
     getUserBots,
-    // login, 
-    verifyToken,
+    login,
+    register,
     getProfile,
     updateProfile,
-    // changePassword,
     updatePreferences
 } from '../../controllers/userController';
 import { authenticate } from '../middlewares/authenticate';
@@ -18,9 +16,8 @@ import { authenticate } from '../middlewares/authenticate';
 const router = Router();
 
 // Public routes
-// router.post('/register', register);
-// router.post('/login', login);
-router.get('/verify', authenticate, verifyToken);
+router.post('/register', register);
+router.post('/login', login);
 
 // Protected routes - Profile & Settings
 router.get('/profile', authenticate, getProfile);

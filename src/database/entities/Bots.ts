@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, BaseEntity, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, BaseEntity, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn, DeleteDateColumn } from "typeorm";
 import { ActivityLogs, LogAction, LogStatus } from "./ActivityLogs";
 import { Profiles } from "./Profiles";
 
@@ -34,6 +34,9 @@ export class Bots extends BaseEntity {
     @Column({ type: "boolean", default: false })
     isConnected!: boolean;
 
+    @Column()
+    description?: string;
+
     @Column({
         type: "json",
         nullable: true,
@@ -50,6 +53,9 @@ export class Bots extends BaseEntity {
 
     @CreateDateColumn({ type: "timestamp" })
     created_at!: Date;
+
+    @DeleteDateColumn({ type: "timestamp", nullable: true })
+    deleted_at!: Date;
 
     @UpdateDateColumn({ type: "timestamp", nullable: true })
     updated_at!: Date;

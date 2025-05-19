@@ -2,7 +2,9 @@ import { Request, Response } from "express";
 import { Bots, BotSettings } from "../database/entities/Bots";
 import { ActivityLogs, LogAction, LogStatus } from "../database/entities/ActivityLogs";
 
-import { startBot, disconnectBot as disconnectWhatsappBot } from "../services/WhatsappClient";
+import { startBot, disconnectBot as disconnectWhatsappBot, cleanBot } from "../services/WhatsappClient";
+import { supabase } from "../config/supabase.config";
+import { logger } from "../utils/logger";
 
 interface AuthRequest extends Request {
     user?: {
@@ -109,18 +111,21 @@ export const updateBotSettings = async (req: AuthRequest, res: Response): Promis
 };
 
 export const createBot = async (req: AuthRequest, res: Response): Promise<void> => {
-    const { name, number } = req.body;
-    const userId = req.user?.id;
-
-    if (!userId) {
+    const { name, number, description } = req.body;
+    const token = req.headers['authorization']?.split(' ')[1];
+    const { data, error } = await supabase.auth.getUser(token)
+    if (error) {
         res.status(401).json({ status: "error", message: "Unauthorized" });
         return;
     }
+
+    const userId = data.user?.id
 
     try {
         const bot = new Bots({
             name,
             number,
+            description: description ? description : '',
             userId,
             isConnected: false
         });
@@ -144,7 +149,7 @@ export const createBot = async (req: AuthRequest, res: Response): Promise<void> 
 
 export const updateBot = async (req: AuthRequest, res: Response): Promise<void> => {
     const botId = req.params.id;
-    const { name, number } = req.body;
+    const { name, number, description } = req.body;
     const userId = req.user?.id;
 
     try {
@@ -157,6 +162,7 @@ export const updateBot = async (req: AuthRequest, res: Response): Promise<void> 
 
         if (name) bot.name = name;
         if (number) bot.number = number;
+        if (description) bot.description = description;
         await bot.save();
 
         if (userId) {
@@ -178,7 +184,15 @@ export const updateBot = async (req: AuthRequest, res: Response): Promise<void> 
 
 export const deleteBot = async (req: AuthRequest, res: Response): Promise<void> => {
     const botId = req.params.id;
-    const userId = req.user?.id;
+    const token = req.headers['authorization']?.split(' ')[1];
+    const { data, error } = await supabase.auth.getUser(token)
+
+    if (error) {
+        res.status(401).json({ status: "error", message: "Unauthorized" });
+        return;
+    }
+
+    const userId = data.user?.id
 
     try {
         const bot = await Bots.findOne({ where: { id: parseInt(botId, 10) } });
@@ -187,6 +201,8 @@ export const deleteBot = async (req: AuthRequest, res: Response): Promise<void> 
             res.status(404).json({ status: "error", message: `Bot dengan ID ${botId} tidak ditemukan.` });
             return;
         }
+
+        await cleanBot(bot.id)
 
         if (userId) {
             await ActivityLogs.createLog(
@@ -198,7 +214,7 @@ export const deleteBot = async (req: AuthRequest, res: Response): Promise<void> 
             );
         }
 
-        await bot.remove();
+        await bot.softRemove();
         res.status(200).json({ status: "success", message: `Bot dengan ID ${botId} berhasil dihapus.` });
     } catch (error) {
         console.error('Error deleting bot:', error);
@@ -206,62 +222,11 @@ export const deleteBot = async (req: AuthRequest, res: Response): Promise<void> 
     }
 };
 
-export const getQRCode = async (req: AuthRequest, res: Response): Promise<void> => {
+export const connectBot = async (req: AuthRequest, res: Response): Promise<void> => {
     const botId = parseInt(req.params.id, 10);
     const userId = req.user?.id;
-
-    try {
-        const bot = await Bots.findOne({ where: { id: botId } });
-        if (!bot) {
-            res.status(404).json({ status: "error", message: "Bot tidak ditemukan." });
-            return;
-        }
-
-        if (!bot.number) {
-            res.status(400).json({ status: "error", message: "Bot number is required." });
-            return;
-        }
-
-        // Get socket.io instance
-        const io = req.app.get('io');
-        if (!io) {
-            throw new Error('Socket.IO instance not found');
-        }
-
-        // Start the bot and get QR code
-        const qrCode = await startBot(botId, bot.number, false, io);
-
-        if (userId) {
-            await ActivityLogs.createLog(
-                'connect',
-                userId,
-                bot.id,
-                'QR code generated',
-                'pending'
-            );
-        }
-
-        // Send initial response
-        res.status(200).json({
-            status: "success",
-            message: "Bot initialization started. QR code will be sent through WebSocket.",
-            botId: botId,
-            botName: bot.name,
-            timestamp: new Date().toISOString()
-        });
-    } catch (error) {
-        console.error(`[ERROR] Failed to get QR code for bot ${botId}:`, error);
-        res.status(500).json({
-            status: "error",
-            message: "Terjadi kesalahan saat mengambil QR code.",
-            error: error instanceof Error ? error.message : String(error)
-        });
-    }
-};
-
-export const getPairingCode = async (req: AuthRequest, res: Response): Promise<void> => {
-    const botId = parseInt(req.params.id, 10);
-    const userId = req.user?.id;
+    const mode = req.body.mode || 'qr';
+    const isPairingCode = mode === 'pairing' ? true : false;
 
     try {
         const bot = await Bots.findOne({ where: { id: botId } });
@@ -282,7 +247,7 @@ export const getPairingCode = async (req: AuthRequest, res: Response): Promise<v
         }
 
         // Start bot with pairing code
-        const code = await startBot(botId, bot.number, true, io);
+        await startBot(botId, bot.number, isPairingCode, io);
 
         if (userId) {
             await ActivityLogs.createLog(
@@ -297,7 +262,6 @@ export const getPairingCode = async (req: AuthRequest, res: Response): Promise<v
         res.status(200).json({
             status: "success",
             message: "Bot initialization started with pairing code.",
-            code: code
         });
     } catch (error) {
         console.error(`[ERROR] Failed to get pairing code for bot ${botId}:`, error);

@@ -7,7 +7,7 @@ import {
     addPaymentMethod,
     deletePaymentMethod,
     getBillingHistory
-} from '../controllers/settings-new.controller';
+} from '../../controllers/settings.controller';
 
 const router = Router();
 

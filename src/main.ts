@@ -45,7 +45,7 @@ AppDataSource.initialize()
         // Start Bot Service
         const bots = await Bots.find({ where: { isConnected: true } });
         for (const bot of bots) {
-            startBot(bot.id, bot.number, true, io);
+            startBot(bot.id, bot.number, false, io);
         }
 
         server.listen(port, () => {
